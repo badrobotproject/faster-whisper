@@ -163,6 +163,7 @@ class WhisperModel:
         self,
         audio: Union[str, BinaryIO, np.ndarray],
         language: Optional[str] = None,
+        blacklist: Optional[List[str]] = [],
         task: str = "transcribe",
         beam_size: int = 5,
         best_of: int = 5,
@@ -312,7 +313,10 @@ class WhisperModel:
                 # Parse language names to strip out markers
                 all_language_probs = [(token[2:-2], prob) for (token, prob) in results]
                 # Get top language token and probability
-                language, language_probability = all_language_probs[0]
+                for i in range(len(all_language_probs)):
+                    language, language_probability = all_language_probs[i]
+                    if language not in blacklist:
+                        break
 
                 self.logger.info(
                     "Detected language '%s' with probability %.2f",
