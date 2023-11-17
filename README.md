@@ -8,6 +8,41 @@ This implementation is up to 4 times faster than [openai/whisper](https://github
 
 ## Benchmark
 
+
+### Distil-whisper
+
+| Implementation | Precision | Beam size | Time | Gigaspeech WER |
+| --- | --- | --- | --- | --- |
+| distil-whisper/distil-large-v2 | fp16 | 4 | 500ms | 10.36 |
+| [faster-distil-large-v2](https://huggingface.co/metame/faster-distil-whisper-large-v2) | fp16 | 5 | 400ms | 10.28 |
+| distil-whisper/distil-medium.en | fp16 | 4 | - | 11.21 |
+| [faster-distil-medium.en](https://huggingface.co/metame/faster-distil-whisper-medium.en) | fp16 | 5 | - | 11.21 |
+
+*Executed with CUDA 11.4 on a NVIDIA 3090.*
+
+For reference, the time is tested with a gigaspeech test sample with duration of 9.87s. And for `distil-whisper/distil-large-v2`, the WER is tested with code sample from [link](https://huggingface.co/distil-whisper/distil-large-v2#evaluation). for `faster-distil-whisper`, the WER is tested with setting:
+```python
+from faster_whisper import WhisperModel
+
+model_size = "metame/faster-distil-whisper-large-v2"
+# model_size = "metame/faster-distil-whisper-medium.en"
+# Run on GPU with FP16
+model = WhisperModel(model_size, device="cuda", compute_type="float16")
+segments, info = model.transcribe("audio.mp3", beam_size=5, language="en")
+```
+
+```python
+model_size = "metame/faster-distil-whisper-large-v2"
+# model_size = "metame/faster-distil-whisper-medium.en"
+model = WhisperModel(model_size, device="cuda", compute_type="float16", 
+    feat_parameters={"chunk_length": 15})
+
+segments, info = model.transcribe("audio.mp3", beam_size=5, 
+    language="en", max_new_tokens=128)
+```
+
+### Whisper
+
 For reference, here's the time and memory usage that are required to transcribe [**13 minutes**](https://www.youtube.com/watch?v=0u7tTptBo9I) of audio using different implementations:
 
 * [openai/whisper](https://github.com/openai/whisper)@[6dea21fd](https://github.com/openai/whisper/commit/6dea21fd7f7253bfe450f1e2512a0fe47ee2d258)

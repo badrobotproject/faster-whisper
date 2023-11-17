@@ -10,7 +10,7 @@ import numpy as np
 import tokenizers
 
 from faster_whisper.audio import decode_audio
-from faster_whisper.feature_extractor import FeatureExtractor
+from faster_whisper.feature_extractor import FeatureExtractor, FeatureExtractorOptions
 from faster_whisper.tokenizer import _LANGUAGE_CODES, Tokenizer
 from faster_whisper.utils import download_model, format_timestamp, get_logger
 from faster_whisper.vad import (
@@ -64,6 +64,7 @@ class TranscriptionOptions(NamedTuple):
     word_timestamps: bool
     prepend_punctuations: str
     append_punctuations: str
+    max_new_tokens: Optional[int]
 
 
 class TranscriptionInfo(NamedTuple):
@@ -87,6 +88,7 @@ class WhisperModel:
         num_workers: int = 1,
         download_root: Optional[str] = None,
         local_files_only: bool = False,
+        feat_parameters: Optional[Union[dict, FeatureExtractorOptions]] = None,
     ):
         """Initializes the Whisper model.
 
@@ -142,7 +144,12 @@ class WhisperModel:
                 "openai/whisper-tiny" + ("" if self.model.is_multilingual else ".en")
             )
 
-        self.feature_extractor = FeatureExtractor()
+        if feat_parameters is None:
+            feat_options = FeatureExtractorOptions()
+        elif isinstance(feat_parameters, dict):
+            feat_options = FeatureExtractorOptions(**feat_parameters)
+        self.feature_extractor = FeatureExtractor(feat_options)
+
         self.num_samples_per_token = self.feature_extractor.hop_length * 2
         self.frames_per_second = (
             self.feature_extractor.sampling_rate // self.feature_extractor.hop_length
@@ -195,6 +202,7 @@ class WhisperModel:
         append_punctuations: str = "\"'.。,，!！?？:：”)]}、",
         vad_filter: bool = False,
         vad_parameters: Optional[Union[dict, VadOptions]] = None,
+        max_new_tokens: Optional[int] = None,
     ) -> Tuple[Iterable[Segment], TranscriptionInfo]:
         """Transcribes an input file.
 
@@ -364,6 +372,7 @@ class WhisperModel:
             word_timestamps=word_timestamps,
             prepend_punctuations=prepend_punctuations,
             append_punctuations=append_punctuations,
+            max_new_tokens=max_new_tokens,
         )
 
         segments = self.generate_segments(features, tokenizer, options, encoder_output)
@@ -628,6 +637,11 @@ class WhisperModel:
             round(options.max_initial_timestamp / self.time_precision)
         )
 
+        if options.max_new_tokens is not None:
+            max_length = min(self.max_length, len(prompt) + options.max_new_tokens)
+        else:
+            max_length = self.max_length
+
         for temperature in options.temperatures:
             if temperature > 0:
                 kwargs = {
@@ -648,7 +662,7 @@ class WhisperModel:
                 length_penalty=options.length_penalty,
                 repetition_penalty=options.repetition_penalty,
                 no_repeat_ngram_size=options.no_repeat_ngram_size,
-                max_length=self.max_length,
+                max_length=max_length,
                 return_scores=True,
                 return_no_speech_prob=True,
                 suppress_blank=options.suppress_blank,

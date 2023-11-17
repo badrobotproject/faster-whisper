@@ -1,16 +1,37 @@
 import numpy as np
+from typing import List, NamedTuple, Optional
+
+
+# Adapted from https://github.com/huggingface/transformers/blob/main/src/transformers/models/whisper/feature_extraction_whisper.py  # noqa: E501
+class FeatureExtractorOptions(NamedTuple):
+    """FeatureExtractor options.
+    Attributes:
+        feature_size: The number of mel bins.
+        sampling_rate: The sampling rate of the input waveform.
+        hop_length: The hop length of the STFT.
+        chunk_length: The length of the input waveform in seconds.
+        n_fft: The number of FFT bins.
+    """
+
+    feature_size: int = 80
+    sampling_rate: int = 16000
+    hop_length: int = 160
+    chunk_length: int = 30
+    n_fft: int = 400
 
 
 # Adapted from https://github.com/huggingface/transformers/blob/main/src/transformers/models/whisper/feature_extraction_whisper.py  # noqa: E501
 class FeatureExtractor:
     def __init__(
-        self,
-        feature_size=80,
-        sampling_rate=16000,
-        hop_length=160,
-        chunk_length=30,
-        n_fft=400,
+        self, feat_options: Optional[FeatureExtractorOptions] = None, **kwargs
     ):
+        if feat_options is None:
+            feat_options = FeatureExtractorOptions(**kwargs)
+        n_fft, hop_length = feat_options.n_fft, feat_options.hop_length
+        chunk_length = feat_options.chunk_length
+        sampling_rate = feat_options.sampling_rate
+        feature_size = feat_options.feature_size
+
         self.n_fft = n_fft
         self.hop_length = hop_length
         self.chunk_length = chunk_length
