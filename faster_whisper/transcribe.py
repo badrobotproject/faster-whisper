@@ -140,9 +140,6 @@ class WhisperModel:
         if os.path.isfile(tokenizer_file):
             self.hf_tokenizer = tokenizers.Tokenizer.from_file(tokenizer_file)
         else:
-            self.hf_tokenizer = tokenizers.Tokenizer.from_pretrained(
-                "openai/whisper-tiny" + ("" if self.model.is_multilingual else ".en")
-            )
             if is_large_v3:
                 # Tokenizer for large-v3 is different, so we need to load as in whisper-large-v3
                 # and monkey patch it to have the `token_to_id` method.
