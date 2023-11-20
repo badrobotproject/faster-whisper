@@ -77,6 +77,7 @@ def download_model(
     allow_patterns = [
         "config.json",
         "model.bin",
+        "preprocessor_config.json",
         "tokenizer.json",
         "vocabulary.*",
     ]
